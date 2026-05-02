@@ -6,7 +6,7 @@ export function SummaryPage() {
   const [answer, setAnswer] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(false);
 
-  const [qrSrc, setQrSrc] = useState('');
+  //const [qrSrc, setQrSrc] = useState('');
   const [generateLoading, setGenerateLoading] = useState(false);
 
   const [error, setError] = useState('');
@@ -30,12 +30,12 @@ export function SummaryPage() {
     if (!prompt.trim()) return;
     setGenerateLoading(true);
     setError('');
-    setQrSrc('');
+    //setQrSrc('');
     try {
       const result = await generateMedicalSummary(prompt);
 
       // Display QR code
-      setQrSrc(`data:image/png;base64,${result.qrBase64}`);
+      //setQrSrc(`data:image/png;base64,${result.qrBase64}`);
 
       // Open PDF in new tab
       const pdfBytes = Uint8Array.from(atob(result.pdfBase64), c => c.charCodeAt(0));

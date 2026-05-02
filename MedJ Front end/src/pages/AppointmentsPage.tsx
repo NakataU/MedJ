@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { getAllAppointments, updateAppointment, linkDocumentsToAppointment } from '../api/appointments';
+import { getAllAppointments, updateAppointment } from '../api/appointments';
 import { getAllPractitioners } from '../api/practitioners';
 import { getDocumentsByAppointmentId, deleteDocument, getPreviewUrl, getDownloadUrl, getAllUserDocuments } from '../api/documents';
 import type { AppointmentOutView, PractitionerOutView, Page, AppointmentCreateInput, DocumentListOutView } from '../types';
