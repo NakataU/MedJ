@@ -638,18 +638,314 @@ button:hover {
   font-size: 0.8rem;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
+/* ==================== */
+/* Mobile Header        */
+/* ==================== */
+
+.mobile-header {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background-color: #1a365d;
+  color: white;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 1001;
+  gap: 12px;
+}
+
+.mobile-logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #63b3ed;
+}
+
+.hamburger-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hamburger-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 24px;
+}
+
+.hamburger-icon span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background-color: white;
+  border-radius: 2px;
+  transition: transform 0.3s, opacity 0.3s;
+}
+
+.hamburger-icon.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger-icon.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-icon.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+/* ==================== */
+/* Responsive: Tablet   */
+/* ==================== */
+
+@media (max-width: 1024px) {
+  .main-content {
+    padding: 24px 20px;
+  }
+
   .charts-section {
     grid-template-columns: 1fr;
   }
 
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+/* ==================== */
+/* Responsive: Mobile   */
+/* ==================== */
+
+@media (max-width: 768px) {
+  .mobile-header {
+    display: flex;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: -240px;
+    top: 0;
+    height: 100vh;
+    z-index: 1000;
+    transition: left 0.3s ease;
+    padding-top: 56px;
+  }
+
+  .sidebar--open {
+    left: 0;
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 20px 16px;
+    padding-top: 72px;
+  }
+
+  .page h1 {
+    font-size: 1.4rem;
+  }
+
+  .home-header h1 {
+    font-size: 1.5rem;
+  }
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stat-value {
+    font-size: 1.4rem;
+  }
+
+  .charts-section {
+    grid-template-columns: 1fr;
   }
 
   .donut-chart-container {
     flex-direction: column;
+  }
+
+  /* Tables become scrollable */
+  .data-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 10px 12px;
+    font-size: 0.825rem;
+    white-space: nowrap;
+  }
+
+  /* Appointment cards */
+  .appointment-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .appointment-header-actions {
+    align-self: flex-end;
+  }
+
+  /* Document details */
+  .document-actions {
+    flex-direction: column;
+  }
+
+  /* Modals */
+  .modal {
+    width: 95%;
+    max-height: 85vh;
+  }
+
+  .apt-preview-modal {
+    width: 98%;
+    max-height: 90vh;
+  }
+
+  /* Auth pages */
+  .auth-card {
+    padding: 28px 20px;
+  }
+
+  .auth-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* Forms */
+  .practitioner-form .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+
+  /* Summary page */
+  .summary-actions {
+    flex-direction: column;
+  }
+
+  .summary-actions button {
+    width: 100%;
+  }
+
+  /* Page header */
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .page-header button {
+    width: 100%;
+  }
+
+  /* Pagination */
+  .pagination {
+    gap: 8px;
+  }
+
+  .pagination button {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  /* Chart bars */
+  .bar-chart {
+    height: 160px;
+  }
+
+  .chart-bar-group {
+    max-width: 40px;
+  }
+
+  .bar {
+    width: 12px;
+  }
+}
+
+/* ==================== */
+/* Responsive: Small    */
+/* ==================== */
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    flex-direction: row;
+    padding: 14px;
+  }
+
+  .chart-container {
+    padding: 16px;
+  }
+
+  .chart-legend {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .checkbox-group {
+    flex-direction: column;
+  }
+
+  .no-practitioner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .appointment-card {
+    padding: 14px;
+  }
+
+  .modal-body {
+    padding: 16px;
+  }
+
+  .modal-header {
+    padding: 16px;
   }
 }
 

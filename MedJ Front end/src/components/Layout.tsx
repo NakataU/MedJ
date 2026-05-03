@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 // import { useNavigate } from 'react-router-dom';
 // import { useAuth } from '../context/AuthContext';
 
 export function Layout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   // const { user, logoutUser } = useAuth();
   // const navigate = useNavigate();
 
@@ -11,35 +13,61 @@ export function Layout() {
   //   navigate('/login', { replace: true });
   // };
 
+  const closeSidebar = () => setSidebarOpen(false);
+
+  // Close sidebar on navigation (for mobile)
+  const handleNavClick = () => {
+    if (window.innerWidth <= 768) {
+      setSidebarOpen(false);
+    }
+  };
+
   return (
     <div className="app-layout">
-      <nav className="sidebar">
+      <header className="mobile-header">
+        <button
+          className="hamburger-btn"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Toggle menu"
+        >
+          <span className={`hamburger-icon ${sidebarOpen ? 'open' : ''}`}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
+        <h2 className="mobile-logo">MedJ</h2>
+      </header>
+
+      {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
+
+      <nav className={`sidebar ${sidebarOpen ? 'sidebar--open' : ''}`}>
         <div className="logo">
           <h2>MedJ</h2>
         </div>
         <ul className="nav-links">
           <li>
-            <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>
+            <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>
               Dashboard
             </NavLink>
           </li>
           <li>
-            <NavLink to="/documents" className={({ isActive }) => isActive ? 'active' : ''}>
+            <NavLink to="/documents" className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>
               Documents
             </NavLink>
           </li>
           <li>
-            <NavLink to="/appointments" className={({ isActive }) => isActive ? 'active' : ''}>
+            <NavLink to="/appointments" className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>
               Appointments
             </NavLink>
           </li>
           <li>
-            <NavLink to="/practitioners" className={({ isActive }) => isActive ? 'active' : ''}>
+            <NavLink to="/practitioners" className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>
               Practitioners
             </NavLink>
           </li>
           <li>
-            <NavLink to="/summary" className={({ isActive }) => isActive ? 'active' : ''}>
+            <NavLink to="/summary" className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>
               Summary
             </NavLink>
           </li>

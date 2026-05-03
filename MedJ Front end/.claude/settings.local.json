@@ -3,7 +3,9 @@
     "allow": [
       "Bash(dir:*)",
       "Bash(xargs cat:*)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(npx tsc *)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp"
     ]
   }
 }
