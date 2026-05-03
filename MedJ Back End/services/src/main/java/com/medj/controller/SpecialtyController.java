@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 
 import org.springframework.data.domain.Pageable;
 
-@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/specialty")
 public class SpecialtyController {

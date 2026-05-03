@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.format.DateTimeFormatter;
 
-@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/summary")
 public class SummaryController {
