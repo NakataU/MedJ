@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import { getAllAppointments, updateAppointment } from '../api/appointments';
 import { getAllPractitioners } from '../api/practitioners';
 import { getDocumentsByAppointmentId, deleteDocument, getPreviewUrl, getDownloadUrl, getAllUserDocuments } from '../api/documents';
@@ -9,6 +11,7 @@ import { Pagination } from '../components/Pagination';
 
 // ── Inline sub-component: document list per appointment ──────────────────────
 function AppointmentDocuments({ appointmentId }: { appointmentId: number }) {
+  const { t } = useTranslation();
   const [docs, setDocs] = useState<DocumentListOutView[]>([]);
   const [docPage, setDocPage] = useState(0);
   const [docPageData, setDocPageData] = useState<Page<DocumentListOutView> | null>(null);
@@ -25,7 +28,7 @@ function AppointmentDocuments({ appointmentId }: { appointmentId: number }) {
         setDocs(data.content);
         setDocPageData(data);
       })
-      .catch(() => setError('Failed to load documents'))
+      .catch(() => setError(t('appointments.errorLoadDocs')))
       .finally(() => setLoading(false));
   };
 
@@ -44,7 +47,7 @@ function AppointmentDocuments({ appointmentId }: { appointmentId: number }) {
         fetchDocs();
       }
     } catch {
-      setError('Failed to delete document');
+      setError(t('appointments.errorDeleteDoc'));
     } finally {
       setDeletingId(null);
     }
@@ -53,9 +56,9 @@ function AppointmentDocuments({ appointmentId }: { appointmentId: number }) {
   const isImage = (fileName: string) =>
     /\.(png|jpe?g|gif|webp|svg)$/i.test(fileName);
 
-  if (loading) return <p className="apt-docs-loading">Loading documents...</p>;
+  if (loading) return <p className="apt-docs-loading">{t('appointments.loadingDocs')}</p>;
   if (error) return <p className="apt-docs-error">{error}</p>;
-  if (docs.length === 0) return <p className="apt-docs-empty">No documents attached.</p>;
+  if (docs.length === 0) return <p className="apt-docs-empty">{t('appointments.noDocsAttached')}</p>;
 
   return (
     <>
@@ -164,7 +167,9 @@ const formatDate = (date: string | number[]): string => {
 };
 
 export function AppointmentsPage() {
+  const { t } = useTranslation();
   const location = useLocation();
+  const { user } = useAuth();
 
   const [appointments, setAppointments] = useState<AppointmentOutView[]>([]);
   const [practitioners, setPractitioners] = useState<PractitionerOutView[]>([]);
@@ -208,7 +213,7 @@ export function AppointmentsPage() {
         setAppointments(data.content);
         setPageData(data);
       } catch (err) {
-        setError('Failed to load appointments');
+        setError(t('appointments.error'));
         console.error(err);
       } finally {
         setLoading(false);
@@ -242,7 +247,7 @@ export function AppointmentsPage() {
 
     setDocsLoading(true);
     promises.push(
-      getAllUserDocuments()
+      getAllUserDocuments(user!.id)
         .then((docs) => setAvailableDocs(docs))
         .catch(() => setCreateError('Failed to load documents'))
         .finally(() => setDocsLoading(false))
@@ -375,7 +380,7 @@ export function AppointmentsPage() {
   };
 
   if (loading) {
-    return <div className="loading">Loading appointments...</div>;
+    return <div className="loading">{t('appointments.loading')}</div>;
   }
 
   if (error) {
@@ -385,9 +390,9 @@ export function AppointmentsPage() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1>My Appointments</h1>
+        <h1>{t('appointments.title')}</h1>
         <button className="button" onClick={openCreateModal}>
-          Add Appointment
+          {t('appointments.add')}
         </button>
       </div>
 
@@ -396,7 +401,7 @@ export function AppointmentsPage() {
         <div className="modal-overlay" onClick={closeCreateModal}>
           <div className="modal create-appointment-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>New Appointment</h2>
+              <h2>{t('appointments.newAppointment')}</h2>
               <button className="modal-close" onClick={closeCreateModal}>
                 &times;
               </button>
@@ -410,7 +415,7 @@ export function AppointmentsPage() {
               ) : (
                 <form className="appointment-form" onSubmit={handleSubmit}>
                   <div className="form-group">
-                    <label htmlFor="name">Appointment Name *</label>
+                    <label htmlFor="name">{t('appointments.appointmentName')} *</label>
                     <input
                       type="text"
                       id="name"
@@ -423,7 +428,7 @@ export function AppointmentsPage() {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="place">Location *</label>
+                    <label htmlFor="place">{t('appointments.location')} *</label>
                     <input
                       type="text"
                       id="place"
@@ -436,7 +441,7 @@ export function AppointmentsPage() {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="date">Date *</label>
+                    <label htmlFor="date">{t('appointments.date')} *</label>
                     <input
                       type="date"
                       id="date"
@@ -448,14 +453,14 @@ export function AppointmentsPage() {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="practitionerId">Practitioner</label>
+                    <label htmlFor="practitionerId">{t('appointments.practitioner')}</label>
                     <select
                       id="practitionerId"
                       name="practitionerId"
                       value={formData.practitionerId || ''}
                       onChange={handleInputChange}
                     >
-                      <option value="">None</option>
+                      <option value="">{t('common.none')}</option>
                       {practitioners.map((practitioner) => (
                         <option key={practitioner.id} value={practitioner.id}>
                           {practitioner.firstName} {practitioner.lastName}
@@ -466,11 +471,11 @@ export function AppointmentsPage() {
                   </div>
 
                   <div className="form-group">
-                    <label>Documents</label>
+                    <label>{t('appointments.documents')}</label>
                     {docsLoading ? (
-                      <p className="apt-docs-loading">Loading documents...</p>
+                      <p className="apt-docs-loading">{t('appointments.loadingDocs')}</p>
                     ) : availableDocs.length === 0 ? (
-                      <p className="empty-hint">No documents uploaded yet.</p>
+                      <p className="empty-hint">{t('appointments.noDocsUploaded')}</p>
                     ) : (
                       <div className="doc-picker-list">
                         {availableDocs.map((doc) => (
@@ -497,10 +502,10 @@ export function AppointmentsPage() {
                       className="button secondary"
                       onClick={closeCreateModal}
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                     <button type="submit" className="button">
-                      Create Appointment
+                      {t('appointments.createAppointment')}
                     </button>
                   </div>
                 </form>
@@ -515,7 +520,7 @@ export function AppointmentsPage() {
         <div className="modal-overlay" onClick={closeUpdateModal}>
           <div className="modal practitioner-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Edit Appointment</h2>
+              <h2>{t('appointments.editAppointment')}</h2>
               <button className="modal-close" onClick={closeUpdateModal}>&times;</button>
             </div>
             {practitionersLoading2 ? (
@@ -525,7 +530,7 @@ export function AppointmentsPage() {
                 {updateError && <div className="form-error">{updateError}</div>}
                 <div className="form-row">
                   <div className="form-group">
-                    <label htmlFor="update-name">Appointment Name</label>
+                    <label htmlFor="update-name">{t('appointments.appointmentName')}</label>
                     <input
                       type="text"
                       id="update-name"
@@ -536,7 +541,7 @@ export function AppointmentsPage() {
                     />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="update-date">Date</label>
+                    <label htmlFor="update-date">{t('appointments.date')}</label>
                     <input
                       type="date"
                       id="update-date"
@@ -548,7 +553,7 @@ export function AppointmentsPage() {
                   </div>
                 </div>
                 <div className="form-group">
-                  <label htmlFor="update-place">Location</label>
+                  <label htmlFor="update-place">{t('appointments.location')}</label>
                   <input
                     type="text"
                     id="update-place"
@@ -559,14 +564,14 @@ export function AppointmentsPage() {
                   />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="update-practitionerId">Practitioner</label>
+                  <label htmlFor="update-practitionerId">{t('appointments.practitioner')}</label>
                   <select
                     id="update-practitionerId"
                     name="practitionerId"
                     value={updateFormData.practitionerId || ''}
                     onChange={handleUpdateInputChange}
                   >
-                    <option value="">None</option>
+                    <option value="">{t('common.none')}</option>
                     {practitioners.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.firstName} {p.lastName}
@@ -577,10 +582,10 @@ export function AppointmentsPage() {
                 </div>
                 <div className="form-actions">
                   <button type="button" className="button secondary" onClick={closeUpdateModal} disabled={updateLoading}>
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                   <button type="submit" className="button" disabled={updateLoading}>
-                    {updateLoading ? 'Saving...' : 'Save Changes'}
+                    {updateLoading ? t('appointments.saving') : t('appointments.saveChanges')}
                   </button>
                 </div>
               </form>
@@ -590,7 +595,7 @@ export function AppointmentsPage() {
       )}
 
       {appointments.length === 0 ? (
-        <p className="empty-message">No appointments found.</p>
+        <p className="empty-message">{t('appointments.noAppointments')}</p>
       ) : (
         <>
           <div className="appointments-list">
@@ -618,17 +623,17 @@ export function AppointmentsPage() {
                 </div>
 
                 <div className="appointment-summary">
-                  <p><strong>Location:</strong> {appointment.place}</p>
+                  <p><strong>{t('appointments.location')}:</strong> {appointment.place}</p>
                   {appointment.practitioner ? (
                     <p>
-                      <strong>Practitioner:</strong>{' '}
+                      <strong>{t('appointments.practitioner')}:</strong>{' '}
                       {appointment.practitioner.firstName} {appointment.practitioner.lastName}
                       {appointment.practitioner.specialty && (
                         <> - {appointment.practitioner.specialty.specialty}</>
                       )}
                     </p>
                   ) : (
-                    <p><strong>Practitioner:</strong> Not assigned</p>
+                    <p><strong>{t('appointments.practitioner')}:</strong> {t('appointments.notAssigned')}</p>
                   )}
                 </div>
 
@@ -636,24 +641,24 @@ export function AppointmentsPage() {
                   <div className="appointment-details">
                     {appointment.practitioner ? (
                       <div className="practitioner-info">
-                        <h4>Practitioner Details</h4>
-                        <p><strong>Name:</strong> {appointment.practitioner.firstName} {appointment.practitioner.lastName}</p>
+                        <h4>{t('appointments.practitionerDetails')}</h4>
+                        <p><strong>{t('practitioners.name')}:</strong> {appointment.practitioner.firstName} {appointment.practitioner.lastName}</p>
                         {appointment.practitioner.specialty && (
-                          <p><strong>Specialty:</strong> {appointment.practitioner.specialty.specialty}</p>
+                          <p><strong>{t('appointments.specialty')}:</strong> {appointment.practitioner.specialty.specialty}</p>
                         )}
                         {appointment.practitioner.specialization && (
-                          <p><strong>Specialization:</strong> {appointment.practitioner.specialization}</p>
+                          <p><strong>{t('appointments.specialization')}:</strong> {appointment.practitioner.specialization}</p>
                         )}
                       </div>
                     ) : (
                       <div className="practitioner-info">
-                        <h4>Practitioner</h4>
-                        <p>No practitioner assigned to this appointment.</p>
+                        <h4>{t('appointments.practitioner')}</h4>
+                        <p>{t('appointments.notAssigned')}</p>
                       </div>
                     )}
 
                     <div className="appointment-documents">
-                      <h4>Documents</h4>
+                      <h4>{t('appointments.documents')}</h4>
                       <AppointmentDocuments appointmentId={appointment.id} />
                     </div>
                   </div>

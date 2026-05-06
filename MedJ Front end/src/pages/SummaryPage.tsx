@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getMedicalSummary, generateMedicalSummary } from '../api/summary';
 
 export function SummaryPage() {
+  const { t } = useTranslation();
   const [prompt, setPrompt] = useState('');
   const [answer, setAnswer] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -20,7 +22,7 @@ export function SummaryPage() {
       const result = await getMedicalSummary(prompt);
       setAnswer(result);
     } catch {
-      setError('Failed to generate summary. Please try again.');
+      setError(t('summary.errorSummary'));
     } finally {
       setSummaryLoading(false);
     }
@@ -44,7 +46,7 @@ export function SummaryPage() {
       window.open(url, '_blank');
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     } catch {
-      setError('Failed to generate medical card. Please try again.');
+      setError(t('summary.errorCard'));
     } finally {
       setGenerateLoading(false);
     }
@@ -52,16 +54,16 @@ export function SummaryPage() {
 
   return (
     <div className="page">
-      <h1>Medical Summary</h1>
+      <h1>{t('summary.title')}</h1>
 
       <div className="summary-form">
-        <label htmlFor="prompt-input" className="summary-label">Prompt</label>
+        <label htmlFor="prompt-input" className="summary-label">{t('summary.prompt')}</label>
         <textarea
           id="prompt-input"
           className="summary-textarea"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Enter your medical prompt..."
+          placeholder={t('summary.promptPlaceholder')}
           rows={5}
         />
         <div className="summary-actions">
@@ -70,16 +72,15 @@ export function SummaryPage() {
             onClick={handleGenerateSummary}
             disabled={summaryLoading || !prompt.trim()}
           >
-            {summaryLoading ? 'Generating...' : 'Generate Summary'}
+            {summaryLoading ? t('summary.generating') : t('summary.generateSummary')}
           </button>
 
           <button
             className={`summary-btn ${answer.trim() ? 'summary-btn--active' : 'summary-btn--disabled'}`}
             onClick={handleGenerateCard}
             disabled={generateLoading || !answer.trim()}
-            title={!answer.trim() ? 'Generate a summary first — the card will be available once you have an answer' : undefined}
           >
-            {generateLoading ? 'Generating...' : 'Generate Card & QR'}
+            {generateLoading ? t('summary.generating') : t('summary.generateCard')}
           </button>
         </div>
       </div>
@@ -87,9 +88,9 @@ export function SummaryPage() {
       {error && <div className="summary-error">{error}</div>}
 
       <div className="summary-answer-section">
-        <label className="summary-label">Answer</label>
+        <label className="summary-label">{t('summary.answer')}</label>
         <div className="summary-answer">
-          {summaryLoading ? 'Generating summary...' : answer || 'The response will appear here.'}
+          {summaryLoading ? t('summary.generatingAnswer') : answer || t('summary.answerPlaceholder')}
         </div>
       </div>
 

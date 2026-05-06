@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getAllPractitioners, createPractitioner, updatePractitioner } from '../api/practitioners';
 import { getAllSpecialties } from '../api/specialties';
@@ -6,6 +7,7 @@ import type { PractitionerOutView, SpecialtyOutView, Page, PractitionerCreateInp
 import { Pagination } from '../components/Pagination';
 
 export function PractitionersPage() {
+  const { t } = useTranslation();
   const [practitioners, setPractitioners] = useState<PractitionerOutView[]>([]);
   const [specialties, setSpecialties] = useState<SpecialtyOutView[]>([]);
   const [page, setPage] = useState(0);
@@ -55,7 +57,7 @@ export function PractitionersPage() {
       setPageData(data);
     } catch (err) {
       console.error(err);
-      setError('Failed to load practitioners');
+      setError(t('practitioners.error'));
     } finally {
       setLoading(false);
     }
@@ -147,15 +149,15 @@ export function PractitionersPage() {
     }
   };
 
-  if (loading) return <div className="loading">Loading practitioners...</div>;
+  if (loading) return <div className="loading">{t('practitioners.loading')}</div>;
   if (error) return <div className="error">{error}</div>;
 
   return (
     <div className="page">
       <div className="page-header">
-        <h1>Practitioners</h1>
+        <h1>{t('practitioners.title')}</h1>
         <button className="button" onClick={() => setShowAddForm(true)}>
-          + Add Practitioner
+          {t('practitioners.add')}
         </button>
       </div>
 
@@ -164,42 +166,42 @@ export function PractitionersPage() {
         <div className="modal-overlay" onClick={handleCancel}>
           <div className="modal practitioner-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Add New Practitioner</h2>
+              <h2>{t('practitioners.addNew')}</h2>
               <button className="modal-close" onClick={handleCancel}>&times;</button>
             </div>
             <form onSubmit={handleSubmit} className="practitioner-form modal-body">
               {formError && <div className="form-error">{formError}</div>}
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="firstName">First Name</label>
+                  <label htmlFor="firstName">{t('practitioners.firstName')}</label>
                   <input type="text" id="firstName" name="firstName" value={formData.firstName}
                     onChange={handleInputChange} required placeholder="e.g. John" />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="lastName">Last Name</label>
+                  <label htmlFor="lastName">{t('practitioners.lastName')}</label>
                   <input type="text" id="lastName" name="lastName" value={formData.lastName}
                     onChange={handleInputChange} required placeholder="e.g. Smith" />
                 </div>
               </div>
               <div className="form-group">
-                <label htmlFor="specialtyId">Specialty</label>
+                <label htmlFor="specialtyId">{t('practitioners.specialty')}</label>
                 <select id="specialtyId" name="specialtyId" value={formData.specialtyId}
                   onChange={handleInputChange} required>
-                  <option value={0} disabled>Select a specialty</option>
+                  <option value={0} disabled>{t('practitioners.selectSpecialty')}</option>
                   {specialties.map((s) => (
                     <option key={s.id} value={s.id}>{s.specialty}</option>
                   ))}
                 </select>
               </div>
               <div className="form-group">
-                <label htmlFor="specialization">Specialization</label>
+                <label htmlFor="specialization">{t('practitioners.specialization')}</label>
                 <input type="text" id="specialization" name="specialization" value={formData.specialization}
                   onChange={handleInputChange} required placeholder="e.g. Pediatric Cardiology" />
               </div>
               <div className="form-actions">
-                <button type="button" className="button secondary" onClick={handleCancel}>Cancel</button>
+                <button type="button" className="button secondary" onClick={handleCancel}>{t('common.cancel')}</button>
                 <button type="submit" className="button" disabled={formLoading}>
-                  {formLoading ? 'Creating...' : 'Create Practitioner'}
+                  {formLoading ? t('practitioners.creating') : t('practitioners.addNew')}
                 </button>
               </div>
             </form>
@@ -212,44 +214,44 @@ export function PractitionersPage() {
         <div className="modal-overlay" onClick={closeUpdateModal}>
           <div className="modal practitioner-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Edit Practitioner</h2>
+              <h2>{t('practitioners.edit')}</h2>
               <button className="modal-close" onClick={closeUpdateModal}>&times;</button>
             </div>
             <form onSubmit={handleUpdateSubmit} className="practitioner-form modal-body">
               {updateError && <div className="form-error">{updateError}</div>}
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="update-firstName">First Name</label>
+                  <label htmlFor="update-firstName">{t('practitioners.firstName')}</label>
                   <input type="text" id="update-firstName" name="firstName" value={updateFormData.firstName}
                     onChange={handleUpdateInputChange} required />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="update-lastName">Last Name</label>
+                  <label htmlFor="update-lastName">{t('practitioners.lastName')}</label>
                   <input type="text" id="update-lastName" name="lastName" value={updateFormData.lastName}
                     onChange={handleUpdateInputChange} required />
                 </div>
               </div>
               <div className="form-group">
-                <label htmlFor="update-specialtyId">Specialty</label>
+                <label htmlFor="update-specialtyId">{t('practitioners.specialty')}</label>
                 <select id="update-specialtyId" name="specialtyId" value={updateFormData.specialtyId}
                   onChange={handleUpdateInputChange} required>
-                  <option value={0} disabled>Select a specialty</option>
+                  <option value={0} disabled>{t('practitioners.selectSpecialty')}</option>
                   {specialties.map((s) => (
                     <option key={s.id} value={s.id}>{s.specialty}</option>
                   ))}
                 </select>
               </div>
               <div className="form-group">
-                <label htmlFor="update-specialization">Specialization</label>
+                <label htmlFor="update-specialization">{t('practitioners.specialization')}</label>
                 <input type="text" id="update-specialization" name="specialization" value={updateFormData.specialization}
                   onChange={handleUpdateInputChange} required />
               </div>
               <div className="form-actions">
                 <button type="button" className="button secondary" onClick={closeUpdateModal} disabled={updateLoading}>
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="button" disabled={updateLoading}>
-                  {updateLoading ? 'Saving...' : 'Save Changes'}
+                  {updateLoading ? t('practitioners.saving') : t('practitioners.saveChanges')}
                 </button>
               </div>
             </form>
@@ -259,15 +261,15 @@ export function PractitionersPage() {
 
       {/* Practitioners List */}
       {practitioners.length === 0 ? (
-        <p className="empty-message">No practitioners found.</p>
+        <p className="empty-message">{t('practitioners.noPractitioners')}</p>
       ) : (
         <>
           <table className="data-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Specialty</th>
-                <th>Specialization</th>
+                <th>{t('practitioners.name')}</th>
+                <th>{t('practitioners.specialty')}</th>
+                <th>{t('practitioners.specialization')}</th>
                 <th></th>
               </tr>
             </thead>

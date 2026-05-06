@@ -1,17 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { register } from '../api/auth';
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
-  const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  });
+  const [form, setForm] = useState({ username: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,21 +20,16 @@ export function RegisterPage() {
     setError('');
 
     if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('auth.register.errorMismatch'));
       return;
     }
 
     setLoading(true);
     try {
-      await register({
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email,
-        password: form.password,
-      });
+      await register({ username: form.username, password: form.password });
       navigate('/login', { state: { registered: true } });
     } catch {
-      setError('Registration failed. Email may already be in use.');
+      setError(t('auth.register.errorFailed'));
     } finally {
       setLoading(false);
     }
@@ -49,57 +40,30 @@ export function RegisterPage() {
       <div className="auth-card">
         <div className="auth-logo">
           <h1>MedJ</h1>
-          <p>Your personal medical record manager</p>
+          <p>{t('auth.tagline')}</p>
         </div>
 
-        <h2 className="auth-title">Create account</h2>
+        <h2 className="auth-title">{t('auth.register.title')}</h2>
 
         {error && <div className="auth-error">{error}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <div className="auth-row">
-            <div className="form-group">
-              <label htmlFor="firstName">First name</label>
-              <input
-                id="firstName"
-                name="firstName"
-                type="text"
-                value={form.firstName}
-                onChange={handleChange}
-                placeholder="John"
-                required
-                autoFocus
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="lastName">Last name</label>
-              <input
-                id="lastName"
-                name="lastName"
-                type="text"
-                value={form.lastName}
-                onChange={handleChange}
-                placeholder="Doe"
-                required
-              />
-            </div>
-          </div>
-
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="username">{t('auth.username')}</label>
             <input
-              id="email"
-              name="email"
-              type="email"
-              value={form.email}
+              id="username"
+              name="username"
+              type="text"
+              value={form.username}
               onChange={handleChange}
-              placeholder="you@example.com"
+              placeholder={t('auth.usernamePlaceholder')}
               required
+              autoFocus
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">{t('auth.password')}</label>
             <input
               id="password"
               name="password"
@@ -112,7 +76,7 @@ export function RegisterPage() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm password</label>
+            <label htmlFor="confirmPassword">{t('auth.confirmPassword')}</label>
             <input
               id="confirmPassword"
               name="confirmPassword"
@@ -125,13 +89,13 @@ export function RegisterPage() {
           </div>
 
           <button type="submit" className="auth-submit-btn" disabled={loading}>
-            {loading ? 'Creating account…' : 'Create account'}
+            {loading ? t('auth.register.submitting') : t('auth.register.submit')}
           </button>
         </form>
 
         <p className="auth-footer">
-          Already have an account?{' '}
-          <Link to="/login">Sign in</Link>
+          {t('auth.register.hasAccount')}{' '}
+          <Link to="/login">{t('auth.register.signIn')}</Link>
         </p>
       </div>
     </div>

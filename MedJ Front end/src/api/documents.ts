@@ -40,8 +40,8 @@ export const getDocumentsByUserId = async (
   return res.data;
 };
 
-export const getAllUserDocuments = async (): Promise<DocumentListOutView[]> => {
-  const res = await apiClient.get<Page<DocumentListOutView>>('/document/all/1', {
+export const getAllUserDocuments = async (userId: number): Promise<DocumentListOutView[]> => {
+  const res = await apiClient.get<Page<DocumentListOutView>>(`/document/all/${userId}`, {
     params: { page: 0, size: 200 },
   });
   return res.data.content;

@@ -80,14 +80,12 @@ export interface DocumentCategoryInput {
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
 export interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
 }
 
 export interface RegisterRequest {
-  firstName: string;
-  lastName: string;
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -97,7 +95,10 @@ export interface ChangePasswordRequest {
 }
 
 export interface AuthResponse {
-  token: string;
-  email: string;
-  firstName: string;
+  accessToken: string;
+  tokenType: string;
+  expiresIn: number;
+  role: 'ADMIN' | 'REGULAR';
+  username: string;
+  id: number;
 }

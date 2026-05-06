@@ -4,6 +4,7 @@ import com.medj.entities.JwtResponse;
 import com.medj.view.inView.ApplicationUserInView;
 import com.medj.view.inView.ApplicationUserLogInInView;
 import com.medj.view.outView.ApplicationUserOutView;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -11,16 +12,17 @@ import java.util.Optional;
 
 public interface IApplicationUserService {
 
-    public Optional<ApplicationUserOutView> getById(Long id);
+    Optional<ApplicationUserOutView> getById(Long id);
 
-    public Optional<ApplicationUserOutView> getByUserName(Long id);
+    Optional<ApplicationUserOutView> getByUserName(Long id);
 
-    public ApplicationUserOutView addOne(ApplicationUserInView user);
+    ApplicationUserOutView addOne(ApplicationUserInView user);
 
-    public JwtResponse login(ApplicationUserLogInInView applicationUserLogInInView);
+    JwtResponse login(ApplicationUserLogInInView loginView, HttpServletResponse response);
 
-    public void logout();
+    JwtResponse refresh(String refreshToken, HttpServletResponse response);
 
+    void logout(HttpServletResponse response);
 
-    public Page<ApplicationUserOutView> getAllByUserId(Long id, Pageable pageable);
+    Page<ApplicationUserOutView> getAllByUserId(Long id, Pageable pageable);
 }

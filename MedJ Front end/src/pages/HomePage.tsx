@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 // Placeholder data for diagrams - will be connected to real data later
 const placeholderStats = {
@@ -19,6 +20,7 @@ const monthlyData = [
 ];
 
 export function HomePage() {
+  const { t } = useTranslation();
   const [stats] = useState(placeholderStats);
   const [chartData] = useState(monthlyData);
 
@@ -28,8 +30,8 @@ export function HomePage() {
   return (
     <div className="page home-page">
       <header className="home-header">
-        <h1>Welcome to MedJ</h1>
-        <p className="subtitle">Your personal medical document management system</p>
+        <h1>{t('home.title')}</h1>
+        <p className="subtitle">{t('home.subtitle')}</p>
       </header>
 
       {/* Stats Cards */}
@@ -45,7 +47,7 @@ export function HomePage() {
           </div>
           <div className="stat-content">
             <span className="stat-value">{stats.totalDocuments}</span>
-            <span className="stat-label">Total Documents</span>
+            <span className="stat-label">{t('home.totalDocuments')}</span>
           </div>
         </div>
 
@@ -60,7 +62,7 @@ export function HomePage() {
           </div>
           <div className="stat-content">
             <span className="stat-value">{stats.totalAppointments}</span>
-            <span className="stat-label">Total Appointments</span>
+            <span className="stat-label">{t('home.totalAppointments')}</span>
           </div>
         </div>
 
@@ -73,7 +75,7 @@ export function HomePage() {
           </div>
           <div className="stat-content">
             <span className="stat-value">{stats.upcomingAppointments}</span>
-            <span className="stat-label">Upcoming</span>
+            <span className="stat-label">{t('home.upcoming')}</span>
           </div>
         </div>
 
@@ -87,7 +89,7 @@ export function HomePage() {
           </div>
           <div className="stat-content">
             <span className="stat-value">{stats.recentUploads}</span>
-            <span className="stat-label">Recent Uploads</span>
+            <span className="stat-label">{t('home.recentUploads')}</span>
           </div>
         </div>
       </section>
@@ -95,8 +97,8 @@ export function HomePage() {
       {/* Charts Section */}
       <section className="charts-section">
         <div className="chart-container">
-          <h2>Monthly Activity</h2>
-          <p className="chart-description">Documents and appointments over the past 6 months</p>
+          <h2>{t('home.monthlyActivity')}</h2>
+          <p className="chart-description">{t('home.monthlyDesc')}</p>
 
           <div className="bar-chart">
             <div className="chart-y-axis">
@@ -128,18 +130,18 @@ export function HomePage() {
           <div className="chart-legend">
             <div className="legend-item">
               <span className="legend-color documents-color"></span>
-              <span>Documents</span>
+              <span>{t('home.documents')}</span>
             </div>
             <div className="legend-item">
               <span className="legend-color appointments-color"></span>
-              <span>Appointments</span>
+              <span>{t('home.appointments')}</span>
             </div>
           </div>
         </div>
 
         <div className="chart-container">
-          <h2>Quick Overview</h2>
-          <p className="chart-description">Document distribution by type</p>
+          <h2>{t('home.quickOverview')}</h2>
+          <p className="chart-description">{t('home.overviewDesc')}</p>
 
           <div className="donut-chart-container">
             <div className="donut-chart">
@@ -200,7 +202,7 @@ export function HomePage() {
               </svg>
               <div className="donut-center">
                 <span className="donut-total">{stats.totalDocuments}</span>
-                <span className="donut-label">Total</span>
+                <span className="donut-label">{t('home.total')}</span>
               </div>
             </div>
 

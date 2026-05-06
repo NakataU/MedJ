@@ -11,7 +11,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -60,7 +59,6 @@ public class DocumentController {
         return ResponseEntity.ok(service.addMany(documents));
     }
 
-    //@PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping("/all/{id}")
     public ResponseEntity<Page<DocumentListOutView>> allDocumentsForUser(
             @PathVariable("id") Long id,

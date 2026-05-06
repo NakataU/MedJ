@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getDocumentsByUserId, uploadDocuments } from '../api/documents';
+import { useAuth } from '../context/AuthContext';
 import { getAllCategories } from '../api/categories';
 import type { DocumentListOutView, Page, CategoryOutView } from '../types';
 import { Pagination } from '../components/Pagination';
@@ -17,6 +19,7 @@ const formatDate = (dateString: string): string => {
 };
 
 export function DocumentsPage() {
+  const { t } = useTranslation();
   const [documents, setDocuments] = useState<DocumentListOutView[]>([]);
   const [page, setPage] = useState(0);
   const [pageData, setPageData] = useState<Page<DocumentListOutView> | null>(null);
@@ -35,18 +38,18 @@ export function DocumentsPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const navigate = useNavigate();
-  const userId = 1; // TODO: Replace with auth user ID
+  const { user } = useAuth();
 
   const fetchDocuments = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getDocumentsByUserId(userId, page, 10);
+      const data = await getDocumentsByUserId(user!.id, page, 10);
       setDocuments(data.content);
       setPageData(data);
     } catch (err) {
       console.error(err);
-      setError('Failed to load documents');
+      setError(t('documents.error'));
     } finally {
       setLoading(false);
     }
@@ -105,7 +108,7 @@ export function DocumentsPage() {
       setDocumentCategories(data.content);
       setUploadStep(2);
     } catch {
-      setUploadError('Failed to load categories. Please try again.');
+      setUploadError(t('documents.error'));
     } finally {
       setCategoriesLoading(false);
     }
@@ -134,15 +137,15 @@ export function DocumentsPage() {
     }
   };
 
-  if (loading) return <div className="loading">Loading documents...</div>;
+  if (loading) return <div className="loading">{t('documents.loading')}</div>;
   if (error) return <div className="error">{error}</div>;
 
   return (
     <div className="page">
       <div className="page-header">
-        <h1>My Documents</h1>
+        <h1>{t('documents.title')}</h1>
         <button className="button" onClick={openUploadModal}>
-          Upload Documents
+          {t('documents.upload')}
         </button>
       </div>
 
@@ -151,7 +154,7 @@ export function DocumentsPage() {
         <div className="modal-overlay" onClick={closeUploadModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{uploadStep === 1 ? 'Upload Documents' : 'Assign Categories'}</h2>
+              <h2>{uploadStep === 1 ? t('documents.upload') : t('documents.assignCategories')}</h2>
               <button className="modal-close" onClick={closeUploadModal}>&times;</button>
             </div>
             <div className="modal-body">
@@ -161,7 +164,7 @@ export function DocumentsPage() {
               {uploadStep === 1 && (
                 <>
                   <div className="form-group">
-                    <label>Select Files</label>
+                    <label>{t('documents.selectFiles')}</label>
                     <input
                       type="file"
                       multiple
@@ -191,7 +194,7 @@ export function DocumentsPage() {
 
                   <div className="form-actions" style={{ marginTop: 20 }}>
                     <button type="button" className="button secondary" onClick={closeUploadModal}>
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                     <button
                       type="button"
@@ -199,7 +202,7 @@ export function DocumentsPage() {
                       onClick={goToCategories}
                       disabled={categoriesLoading || selectedFiles.length === 0}
                     >
-                      {categoriesLoading ? 'Loading...' : 'Next: Assign Categories'}
+                      {categoriesLoading ? t('common.loading') : t('documents.nextStep')}
                     </button>
                   </div>
                 </>
@@ -209,7 +212,7 @@ export function DocumentsPage() {
               {uploadStep === 2 && (
                 <>
                   <p className="doc-category-subtitle" style={{ marginBottom: 16 }}>
-                    Select one category per document (optional).
+                    {t('documents.categoryOptional')}
                   </p>
 
                   <div className="doc-category-list" style={{ marginBottom: 20 }}>
@@ -242,7 +245,7 @@ export function DocumentsPage() {
 
                         <div className="doc-category-body">
                           {documentCategories.length === 0 ? (
-                            <p className="empty-hint">No document categories available.</p>
+                            <p className="empty-hint">{t('documents.noCategoriesAvailable')}</p>
                           ) : (
                             <div className="doc-radio-group">
                               {documentCategories.map((category) => (
@@ -273,7 +276,7 @@ export function DocumentsPage() {
                       onClick={() => { setUploadStep(1); setUploadError(null); }}
                       disabled={uploadLoading}
                     >
-                      Back
+                      {t('common.back')}
                     </button>
                     <button
                       type="button"
@@ -281,7 +284,7 @@ export function DocumentsPage() {
                       onClick={handleUpload}
                       disabled={uploadLoading || selectedFiles.length === 0}
                     >
-                      {uploadLoading ? 'Uploading...' : 'Upload'}
+                      {uploadLoading ? t('documents.uploading') : t('documents.uploadBtn')}
                     </button>
                   </div>
                 </>
@@ -292,15 +295,15 @@ export function DocumentsPage() {
       )}
 
       {documents.length === 0 ? (
-        <p className="empty-message">No documents found.</p>
+        <p className="empty-message">{t('documents.noDocuments')}</p>
       ) : (
         <>
           <table className="data-table">
             <thead>
               <tr>
-                <th>File Name</th>
-                <th>Size</th>
-                <th>Created On</th>
+                <th>{t('documents.fileName')}</th>
+                <th>{t('documents.size')}</th>
+                <th>{t('documents.createdOn')}</th>
               </tr>
             </thead>
             <tbody>

@@ -1,13 +1,15 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { login } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { loginUser } = useAuth();
+  const { t } = useTranslation();
 
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,11 +19,11 @@ export function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await login({ email, password });
-      loginUser(res.token, res.email, res.firstName);
+      const res = await login({ username, password });
+      loginUser(res);
       navigate('/', { replace: true });
     } catch {
-      setError('Invalid email or password.');
+      setError(t('auth.login.error'));
     } finally {
       setLoading(false);
     }
@@ -32,29 +34,29 @@ export function LoginPage() {
       <div className="auth-card">
         <div className="auth-logo">
           <h1>MedJ</h1>
-          <p>Your personal medical record manager</p>
+          <p>{t('auth.tagline')}</p>
         </div>
 
-        <h2 className="auth-title">Sign in</h2>
+        <h2 className="auth-title">{t('auth.login.title')}</h2>
 
         {error && <div className="auth-error">{error}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="username">{t('auth.username')}</label>
             <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder={t('auth.usernamePlaceholder')}
               required
               autoFocus
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">{t('auth.password')}</label>
             <input
               id="password"
               type="password"
@@ -66,13 +68,13 @@ export function LoginPage() {
           </div>
 
           <button type="submit" className="auth-submit-btn" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? t('auth.login.submitting') : t('auth.login.submit')}
           </button>
         </form>
 
         <p className="auth-footer">
-          Don't have an account?{' '}
-          <Link to="/register">Create one</Link>
+          {t('auth.login.noAccount')}{' '}
+          <Link to="/register">{t('auth.login.createOne')}</Link>
         </p>
       </div>
     </div>
