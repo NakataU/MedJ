@@ -186,7 +186,7 @@ public class DocumentService implements IDocumentService {
         log.info("deleteDocument starts");
 
         Document document = documentRepository.findByIdAndByIsActive(id);
-        AppointmentDocuments appointmentDocument = appointmentDocumentsRepository.findAppointmentDocumentsByDocumentIdAndIsActive(id);
+        //AppointmentDocuments appointmentDocument = appointmentDocumentsRepository.findAppointmentDocumentsByDocumentIdAndIsActive(id);
 
         Path filePath = Paths.get("uploads").resolve(document.getFileName());
         try {
@@ -197,8 +197,8 @@ public class DocumentService implements IDocumentService {
         document.setIsActive(false);
         documentRepository.save(document);
 
-        appointmentDocument.setIsActive(false);
-        appointmentDocumentsRepository.save(appointmentDocument);
+        //appointmentDocument.setIsActive(false);
+        //appointmentDocumentsRepository.save(appointmentDocument);
     }
 
     @Override

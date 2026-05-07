@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { getDocumentsByUserId, uploadDocuments } from '../api/documents';
+import { getDocumentsByUserId, uploadDocuments, deleteDocument } from '../api/documents';
 import { useAuth } from '../context/AuthContext';
 import { getAllCategories } from '../api/categories';
 import type { DocumentListOutView, Page, CategoryOutView } from '../types';
@@ -36,6 +36,7 @@ export function DocumentsPage() {
   const [selectedCategories, setSelectedCategories] = useState<Record<number, number>>({});
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -61,6 +62,23 @@ export function DocumentsPage() {
 
   const handleDocumentClick = (id: number) => {
     navigate(`/documents/${id}`);
+  };
+
+  const handleDelete = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeletingId(id);
+    try {
+      await deleteDocument(id);
+      if (documents.length === 1 && page > 0) {
+        setPage((p) => p - 1);
+      } else {
+        fetchDocuments();
+      }
+    } catch {
+      setError(t('documents.error'));
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const openUploadModal = () => {
@@ -304,6 +322,7 @@ export function DocumentsPage() {
                 <th>{t('documents.fileName')}</th>
                 <th>{t('documents.size')}</th>
                 <th>{t('documents.createdOn')}</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -316,6 +335,23 @@ export function DocumentsPage() {
                   <td>{doc.fileName}</td>
                   <td>{doc.size}</td>
                   <td>{formatDate(doc.createdOn)}</td>
+                  <td>
+                    <button
+                      className="icon-btn"
+                      title={t('documents.deleteConfirm')}
+                      disabled={deletingId === doc.id}
+                      onClick={(e) => handleDelete(doc.id, e)}
+                    >
+                      {deletingId === doc.id ? '…' : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                          <path d="M10 11v6" /><path d="M14 11v6" />
+                          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                        </svg>
+                      )}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
