@@ -32,11 +32,14 @@ export const uploadDocuments = async (
 export const getDocumentsByUserId = async (
   userId: number,
   page: number,
-  size: number
+  size: number,
+  filters?: { documentTypeId?: number; medicalSpecialtyId?: number; medicalCategoryId?: number }
 ): Promise<Page<DocumentListOutView>> => {
-  const res = await apiClient.get(`/document/all/${userId}`, {
-    params: { page, size },
-  });
+  const params: Record<string, number> = { page, size };
+  if (filters?.documentTypeId) params.documentTypeId = filters.documentTypeId;
+  if (filters?.medicalSpecialtyId) params.medicalSpecialtyId = filters.medicalSpecialtyId;
+  if (filters?.medicalCategoryId) params.medicalCategoryId = filters.medicalCategoryId;
+  const res = await apiClient.get(`/document/all/${userId}`, { params });
   return res.data;
 };
 
@@ -61,3 +64,34 @@ export const getPreviewUrl = (id: number): string =>
 
 export const getDownloadUrl = (id: number): string =>
   `${apiClient.defaults.baseURL}/document/${id}/download`;
+
+export const fetchDocumentBlob = async (id: number): Promise<string> => {
+  const res = await apiClient.get(`/document/${id}/content`, {
+    responseType: 'blob',
+  });
+  return URL.createObjectURL(res.data);
+};
+
+export const fetchDocumentDownloadBlob = async (id: number): Promise<string> => {
+  const res = await apiClient.get(`/document/${id}/download`, {
+    responseType: 'blob',
+  });
+  return URL.createObjectURL(res.data);
+};
+
+export const updateDocumentCategories = async (
+  id: number,
+  categories: { documentTypeId: number; medicalSpecialtyId: number; medicalCategoryId: number }
+): Promise<void> => {
+  await apiClient.put(`/document/${id}/categories`, categories);
+};
+
+export const updateDocumentContent = async (
+  id: number,
+  content: string
+): Promise<DocumentOutView> => {
+  const res = await apiClient.put<DocumentOutView>(`/document/${id}/content`, content, {
+    headers: { 'Content-Type': 'text/plain' },
+  });
+  return res.data;
+};

@@ -2,6 +2,7 @@ package com.medj.service;
 
 import com.medj.view.outView.DocumentListOutView;
 import com.medj.view.outView.DocumentOutView;
+import com.medj.view.outView.SummaryResponse;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +27,8 @@ public interface IDocumentService {
 
     public void deleteDocument(Long id);
 
-    public String generateSummary(String prompt) throws IOException;
+    public SummaryResponse generateSummary(String prompt, String lang) throws IOException;
+
+    public DocumentOutView updateContent(Long id, String content);
 
 }

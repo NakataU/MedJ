@@ -13,3 +13,24 @@ export const register = async (data: RegisterRequest): Promise<void> => {
 export const changePassword = async (data: ChangePasswordRequest): Promise<void> => {
   await apiClient.put('/user/change-password', data);
 };
+
+export interface UserProfile {
+  username: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  address: string | null;
+}
+
+export const getProfile = async (userId: number): Promise<UserProfile> => {
+  const res = await apiClient.get<UserProfile>(`/user/profile/${userId}`);
+  return res.data;
+};
+
+export const updateProfile = async (
+  userId: number,
+  data: { firstName: string; lastName: string; phone: string; address: string }
+): Promise<UserProfile> => {
+  const res = await apiClient.put<UserProfile>(`/user/profile/${userId}`, data);
+  return res.data;
+};

@@ -4,6 +4,7 @@ import com.medj.entities.Document;
 import com.medj.service.impl.DocumentService;
 import com.medj.view.outView.DocumentListOutView;
 import com.medj.view.outView.DocumentOutView;
+import com.medj.view.outView.SummaryResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
@@ -62,8 +63,16 @@ public class DocumentController {
     @GetMapping("/all/{id}")
     public ResponseEntity<Page<DocumentListOutView>> allDocumentsForUser(
             @PathVariable("id") Long id,
+            @RequestParam(required = false) Long documentTypeId,
+            @RequestParam(required = false) Long medicalSpecialtyId,
+            @RequestParam(required = false) Long medicalCategoryId,
             Pageable pageable) {
-        Page<DocumentListOutView> documents = service.getAllByUserId(id, pageable);
+        Page<DocumentListOutView> documents;
+        if (documentTypeId != null || medicalSpecialtyId != null || medicalCategoryId != null) {
+            documents = service.getAllByUserIdFiltered(id, documentTypeId, medicalSpecialtyId, medicalCategoryId, pageable);
+        } else {
+            documents = service.getAllByUserId(id, pageable);
+        }
         return ResponseEntity.ok(documents);
     }
 
@@ -75,6 +84,22 @@ public class DocumentController {
         return ResponseEntity.ok(documents);
     }
 
+    @PutMapping("/{id}/content")
+    public ResponseEntity<DocumentOutView> updateContent(@PathVariable("id") Long id,
+                                                          @RequestBody String content) {
+        return ResponseEntity.ok(service.updateContent(id, content));
+    }
+
+    @PutMapping("/{id}/categories")
+    public ResponseEntity<Void> updateCategories(@PathVariable("id") Long id,
+                                                  @RequestBody java.util.Map<String, Long> categories) {
+        service.updateCategories(id,
+                categories.get("documentTypeId"),
+                categories.get("medicalSpecialtyId"),
+                categories.get("medicalCategoryId"));
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteDocument(@PathVariable("id") Long id){
         service.deleteDocument(id);
@@ -82,8 +107,10 @@ public class DocumentController {
     }
 
     @PostMapping(value = "/medical-summary")
-    public ResponseEntity<String> getSummary(@RequestBody String prompt) throws IOException {
-        String summary = service.generateSummary(prompt);
+    public ResponseEntity<SummaryResponse> getSummary(@RequestBody java.util.Map<String, String> body) throws IOException {
+        String prompt = body.get("prompt");
+        String lang = body.getOrDefault("lang", "en");
+        SummaryResponse summary = service.generateSummary(prompt, lang);
         return ResponseEntity.ok(summary);
     }
 }

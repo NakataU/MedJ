@@ -1,14 +1,25 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getMedicalSummary, generateMedicalSummary } from '../api/summary';
+import type { DocumentListOutView } from '../types';
+
+const formatDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
 
 export function SummaryPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const [prompt, setPrompt] = useState('');
   const [answer, setAnswer] = useState('');
+  const [usedDocuments, setUsedDocuments] = useState<DocumentListOutView[]>([]);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
-  //const [qrSrc, setQrSrc] = useState('');
   const [generateLoading, setGenerateLoading] = useState(false);
 
   const [error, setError] = useState('');
@@ -18,9 +29,11 @@ export function SummaryPage() {
     setSummaryLoading(true);
     setError('');
     setAnswer('');
+    setUsedDocuments([]);
     try {
-      const result = await getMedicalSummary(prompt);
-      setAnswer(result);
+      const result = await getMedicalSummary(prompt, i18n.language);
+      setAnswer(result.summary);
+      setUsedDocuments(result.usedDocuments);
     } catch {
       setError(t('summary.errorSummary'));
     } finally {
@@ -29,21 +42,25 @@ export function SummaryPage() {
   };
 
   const handleGenerateCard = async () => {
-    if (!prompt.trim()) return;
+    if (!answer.trim()) return;
     setGenerateLoading(true);
     setError('');
-    //setQrSrc('');
     try {
-      const result = await generateMedicalSummary(prompt);
+      const result = await generateMedicalSummary(answer, i18n.language);
 
       // Display QR code
       //setQrSrc(`data:image/png;base64,${result.qrBase64}`);
 
-      // Open PDF in new tab
+      // Download PDF (works in Safari + all browsers)
       const pdfBytes = Uint8Array.from(atob(result.pdfBase64), c => c.charCodeAt(0));
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'MedJ-Summary.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     } catch {
       setError(t('summary.errorCard'));
@@ -89,10 +106,31 @@ export function SummaryPage() {
 
       <div className="summary-answer-section">
         <label className="summary-label">{t('summary.answer')}</label>
-        <div className="summary-answer">
+        <div className="summary-answer" style={{ whiteSpace: 'pre-wrap' }}>
           {summaryLoading ? t('summary.generatingAnswer') : answer || t('summary.answerPlaceholder')}
         </div>
       </div>
+
+      {usedDocuments.length > 0 && (
+        <div className="summary-docs-section">
+          <label className="summary-label">{t('summary.usedDocuments')}</label>
+          <div className="summary-docs-list">
+            {usedDocuments.map((doc) => (
+              <div
+                key={doc.id}
+                className="summary-doc-item"
+                onClick={() => navigate(`/documents/${doc.id}`)}
+              >
+                <span className="summary-doc-icon">&#128196;</span>
+                <div className="summary-doc-info">
+                  <span className="summary-doc-name">{doc.fileName}</span>
+                  <span className="summary-doc-date">{formatDate(doc.createdOn)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
     </div>
   );

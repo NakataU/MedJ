@@ -17,4 +17,10 @@
             <artifactId>lombok</artifactId>
         </dependency>
     </dependencies>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+    </properties>
 </project>

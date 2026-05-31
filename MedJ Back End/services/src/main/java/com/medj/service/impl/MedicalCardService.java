@@ -52,7 +52,7 @@ public class MedicalCardService {
         ApplicationUser user = userRepository.findById(1L)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        String summary = documentService.generateSummary(prompt);
+        String summary = documentService.generateSummary(prompt, "en").getSummary();
         String token = summaryStore.save(user.getUsername(), summary);
 
         String url = baseUrl + "/summary/" + token;

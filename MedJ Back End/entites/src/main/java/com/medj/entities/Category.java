@@ -15,4 +15,7 @@ public class Category extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     private CategoryTarget target;
+
+    @Enumerated(EnumType.STRING)
+    private CategoryType categoryType;
 }

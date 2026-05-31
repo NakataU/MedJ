@@ -1,15 +1,12 @@
 package com.medj.service.impl;
 
-import com.medj.entities.Appointment;
 import com.medj.entities.Category;
 import com.medj.entities.CategoryTarget;
-import com.medj.entities.Specialty;
+import com.medj.entities.CategoryType;
 import com.medj.repositories.ICategoryRepository;
 import com.medj.service.ICategoryService;
 import com.medj.view.inView.CategoryInView;
-import com.medj.view.outView.AppointmentOutView;
 import com.medj.view.outView.CategoryOutView;
-import com.medj.view.outView.SpecialtyOutView;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,8 +15,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class CategoryService implements ICategoryService {
@@ -48,6 +47,13 @@ public class CategoryService implements ICategoryService {
             CategoryOutView view = modelMapper.map(app, CategoryOutView.class);
             return view;
         });
+    }
+
+    public List<CategoryOutView> findAllByType(CategoryTarget target, CategoryType categoryType) {
+        return categoryRepository.findAllByTargetAndCategoryType(target, categoryType)
+                .stream()
+                .map(c -> modelMapper.map(c, CategoryOutView.class))
+                .collect(Collectors.toList());
     }
 
     @Override

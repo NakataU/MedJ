@@ -17,6 +17,16 @@ public interface IDocumentRepository extends JpaRepository<Document, Long> {
     @Query("SELECT d FROM Document d WHERE d.uploadedByUserId = :userId AND d.isActive = true")
     Page<Document> findAllDocumentsByIsActive(@Param("userId")Long userId, Pageable pageable);
 
+    @Query("SELECT d FROM Document d WHERE d.uploadedByUserId = :userId AND d.isActive = true" +
+           " AND (:documentTypeId IS NULL OR d.documentTypeId = :documentTypeId)" +
+           " AND (:medicalSpecialtyId IS NULL OR d.medicalSpecialtyId = :medicalSpecialtyId)" +
+           " AND (:medicalCategoryId IS NULL OR d.medicalCategoryId = :medicalCategoryId)")
+    Page<Document> findAllDocumentsFiltered(@Param("userId") Long userId,
+                                            @Param("documentTypeId") Long documentTypeId,
+                                            @Param("medicalSpecialtyId") Long medicalSpecialtyId,
+                                            @Param("medicalCategoryId") Long medicalCategoryId,
+                                            Pageable pageable);
+
     @Query("SELECT d FROM Document d WHERE d.isActive = true AND d.id = :id")
     Document findByIdAndByIsActive(@Param("id")Long id);
 
@@ -28,11 +38,12 @@ public interface IDocumentRepository extends JpaRepository<Document, Long> {
     boolean existsByChecksumAndIsActive(String checkSum, Boolean isActive);
 
     @Query("""
-        SELECT d.content AS content,
+        SELECT d.id AS id,
+               d.content AS content,
                d.fileName AS fileName,
                d.createdOn AS createdAt
         FROM Document d
-        WHERE d.uploadedByUserId = :userId
+        WHERE d.uploadedByUserId = :userId AND d.isActive = true
         ORDER BY d.createdOn DESC
     """)
     List<DocumentSummaryProjection> findContentByUser(@Param("userId") Long userId);

@@ -12,6 +12,7 @@ import { SummaryPage } from './pages/SummaryPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
+import { ProfilePage } from './pages/ProfilePage';
 import './App.css';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
               <Route path="appointments/document-categories" element={<DocumentCategoryPage />} />
               <Route path="practitioners" element={<PractitionersPage />} />
               <Route path="summary" element={<SummaryPage />} />
+              <Route path="profile" element={<ProfilePage />} />
               <Route path="change-password" element={<ChangePasswordPage />} />
             </Route>
           </Route>

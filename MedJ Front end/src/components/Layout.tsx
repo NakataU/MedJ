@@ -99,6 +99,12 @@ export function Layout() {
           </div>
           <div className="sidebar-user-actions">
             <NavLink
+              to="/profile"
+              className={({ isActive }) => `sidebar-action-link${isActive ? ' active' : ''}`}
+            >
+              {t('nav.profile')}
+            </NavLink>
+            <NavLink
               to="/change-password"
               className={({ isActive }) => `sidebar-action-link${isActive ? ' active' : ''}`}
             >

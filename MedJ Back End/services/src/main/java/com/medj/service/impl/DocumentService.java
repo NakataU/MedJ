@@ -15,6 +15,7 @@ import com.medj.repositories.IDocumentRepository;
 import com.medj.service.IDocumentService;
 import com.medj.view.outView.DocumentListOutView;
 import com.medj.view.outView.DocumentOutView;
+import com.medj.view.outView.SummaryResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -110,12 +111,25 @@ public class DocumentService implements IDocumentService {
         }
     }
 
+    private static final List<String> ALLOWED_CONTENT_TYPES = List.of(
+            "application/pdf",
+            "image/jpeg",
+            "image/png"
+    );
+
     @Override
     public List<DocumentOutView> addMany(MultipartFile[] documents) throws Exception {
         log.info("addOne started");
         List<DocumentOutView> result = new ArrayList<>();
 
         for (MultipartFile document : documents) {
+            String contentType = document.getContentType();
+            if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
+                throw new IllegalArgumentException(
+                        "Unsupported file type: " + document.getOriginalFilename()
+                        + ". Only PDF, JPG and PNG files are allowed.");
+            }
+
             String checksum = generateChecksum(document, "SHA-256");
             if (documentRepository.existsByChecksumAndIsActive(checksum, true)) {
                 throw new MedJFileAlreadyExists("The file " + document.getOriginalFilename() + " already exists");
@@ -168,6 +182,21 @@ public class DocumentService implements IDocumentService {
         });
     }
 
+    public Page<DocumentListOutView> getAllByUserIdFiltered(Long userId, Long documentTypeId,
+                                                            Long medicalSpecialtyId, Long medicalCategoryId,
+                                                            Pageable pageable) {
+        log.info("getAllByUserIdFiltered starts");
+
+        Page<Document> documents = documentRepository.findAllDocumentsFiltered(
+                userId, documentTypeId, medicalSpecialtyId, medicalCategoryId, pageable);
+
+        return documents.map(doc -> {
+            DocumentListOutView view = modelMapper.map(doc, DocumentListOutView.class);
+            view.setSize(formatSize(doc.getSize()));
+            return view;
+        });
+    }
+
     @Override
     public Page<DocumentListOutView> getAllByAppointmentId(Long id, Pageable pageable) {
         log.info("getAllByAppointmentId starts");
@@ -202,21 +231,58 @@ public class DocumentService implements IDocumentService {
     }
 
     @Override
-    public String generateSummary(String prompt) throws IOException {
+    public DocumentOutView updateContent(Long id, String content) {
+        log.info("updateContent started, id={}", id);
+        Document document = documentRepository.findByIdAndByIsActive(id);
+        document.setContent(content);
+        Document saved = documentRepository.save(document);
+        DocumentOutView result = modelMapper.map(saved, DocumentOutView.class);
+        result.setSize(formatSize(saved.getSize()));
+        return result;
+    }
+
+    public void updateCategories(Long id, Long documentTypeId, Long medicalSpecialtyId, Long medicalCategoryId) {
+        log.info("updateCategories started, id={}", id);
+        Document document = documentRepository.findByIdAndByIsActive(id);
+        document.setDocumentTypeId(documentTypeId);
+        document.setMedicalSpecialtyId(medicalSpecialtyId);
+        document.setMedicalCategoryId(medicalCategoryId);
+        documentRepository.save(document);
+    }
+
+    @Override
+    public SummaryResponse generateSummary(String prompt, String lang) throws IOException {
         log.info("generateSummary started");
 
-        List<String> documentTexts = documentRepository.findContentByUser(1L)
+        List<DocumentSummaryProjection> projections = documentRepository.findContentByUser(1L)
                 .stream()
                 .filter(p -> p.getContent() != null && !p.getContent().isBlank())
+                .collect(Collectors.toList());
+
+        List<String> documentTexts = projections.stream()
                 .map(DocumentSummaryProjection::getContent)
                 .collect(Collectors.toList());
 
-        return summarize(prompt, documentTexts);
+        String summaryText = summarize(prompt, documentTexts, lang);
+
+        List<DocumentListOutView> usedDocs = projections.stream().map(p -> {
+            DocumentListOutView view = new DocumentListOutView();
+            view.setId(p.getId());
+            view.setFileName(p.getFileName());
+            view.setCreatedOn(p.getCreatedAt());
+            return view;
+        }).collect(Collectors.toList());
+
+        SummaryResponse response = new SummaryResponse();
+        response.setSummary(summaryText);
+        response.setUsedDocuments(usedDocs);
+        return response;
     }
 
-    private static final String SYSTEM_INSTRUCTION = """
+    private static final String SYSTEM_INSTRUCTION_EN = """
             You are an experienced medical professional summarizing patient documents.
             Produce clear, clinically accurate summaries using appropriate medical terminology.
+            IMPORTANT: Always respond in English.
             Structure your output with these sections when relevant:
             - Chief Complaint
             - Relevant History
@@ -227,10 +293,26 @@ public class DocumentService implements IDocumentService {
             If information is missing or ambiguous, state so explicitly rather than inferring.
             Do not fabricate diagnoses, dosages, or lab values.
             """;
+
+    private static final String SYSTEM_INSTRUCTION_BG = """
+            You are an experienced medical professional summarizing patient documents.
+            Produce clear, clinically accurate summaries using appropriate medical terminology.
+            IMPORTANT: Always respond in Bulgarian language.
+            Structure your output with these sections when relevant:
+            - Основно оплакване
+            - Релевантна история
+            - Находки / Резултати
+            - Оценка
+            - Препоръки
+
+            If information is missing or ambiguous, state so explicitly rather than inferring.
+            Do not fabricate diagnoses, dosages, or lab values.
+            """;
+
     @Value("${gemini.model}")
     private String modelName;
 
-    public String summarize(String userPrompt, List<String> documentTexts) throws IOException {
+    public String summarize(String userPrompt, List<String> documentTexts, String lang) throws IOException {
         GenerativeModel model = new GenerativeModel.Builder()
                 .setModelName(modelName)
                 .setVertexAi(vertexAI)
@@ -240,14 +322,15 @@ public class DocumentService implements IDocumentService {
                         .build())
                 .build();
 
-        String combinedInput = buildInput(userPrompt, documentTexts);
+        String combinedInput = buildInput(userPrompt, documentTexts, lang);
         GenerateContentResponse response = model.generateContent(combinedInput);
         return ResponseHandler.getText(response);
     }
 
-    private String buildInput(String userPrompt, List<String> documentTexts) {
+    private String buildInput(String userPrompt, List<String> documentTexts, String lang) {
+        String systemInstruction = "bg".equalsIgnoreCase(lang) ? SYSTEM_INSTRUCTION_BG : SYSTEM_INSTRUCTION_EN;
         StringBuilder sb = new StringBuilder();
-        sb.append(SYSTEM_INSTRUCTION).append("\n\n");
+        sb.append(systemInstruction).append("\n\n");
         sb.append("User request: ").append(userPrompt).append("\n\n");
         sb.append("Documents to summarize:\n");
         for (int i = 0; i < documentTexts.size(); i++) {

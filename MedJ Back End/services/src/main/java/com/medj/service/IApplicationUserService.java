@@ -25,4 +25,6 @@ public interface IApplicationUserService {
     void logout(HttpServletResponse response);
 
     Page<ApplicationUserOutView> getAllByUserId(Long id, Pageable pageable);
+
+    ApplicationUserOutView updateProfile(Long id, String firstName, String lastName, String phone, String address);
 }

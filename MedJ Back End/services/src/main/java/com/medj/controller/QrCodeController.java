@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/qr")
@@ -17,8 +18,10 @@ public class QrCodeController {
     private MedicalSummaryService medicalSummaryService;
 
     @PostMapping("/generate")
-    public ResponseEntity<MedicalSummaryResponse> generate(@RequestBody String prompt)
+    public ResponseEntity<MedicalSummaryResponse> generate(@RequestBody Map<String, String> body)
             throws IOException, WriterException {
-        return ResponseEntity.ok(medicalSummaryService.generate(prompt));
+        String summary = body.get("summary");
+        String lang = body.getOrDefault("lang", "en");
+        return ResponseEntity.ok(medicalSummaryService.generate(summary, lang));
     }
 }

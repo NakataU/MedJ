@@ -34,7 +34,7 @@ public class QrCodeService {
         ApplicationUser user = userRepository.findById(1L)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        String summary = documentService.generateSummary(prompt);
+        String summary = documentService.generateSummary(prompt, "en").getSummary();
 
         String header = "Patient: " + user.getUsername() + "\n\n";
         String content = header + truncate(summary, 250 - header.length());

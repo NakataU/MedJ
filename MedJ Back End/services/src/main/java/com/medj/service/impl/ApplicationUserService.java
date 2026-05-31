@@ -113,7 +113,17 @@ public class ApplicationUserService implements IApplicationUserService {
 
     @Override
     public Optional<ApplicationUserOutView> getById(Long id) {
-        return Optional.empty();
+        return applicationUserRepository.findById(id)
+                .map(user -> {
+                    ApplicationUserOutView view = new ApplicationUserOutView();
+                    view.setUsername(user.getUsername());
+                    view.setRole(user.getRole());
+                    view.setFirstName(user.getFirstName());
+                    view.setLastName(user.getLastName());
+                    view.setPhone(user.getPhone());
+                    view.setAddress(user.getAddress());
+                    return view;
+                });
     }
 
     @Override
@@ -144,5 +154,25 @@ public class ApplicationUserService implements IApplicationUserService {
     @Override
     public Page<ApplicationUserOutView> getAllByUserId(Long id, Pageable pageable) {
         return null;
+    }
+
+    @Override
+    public ApplicationUserOutView updateProfile(Long id, String firstName, String lastName, String phone, String address) {
+        ApplicationUser user = applicationUserRepository.findById(id)
+                .orElseThrow(() -> new BadCredentialsException("User not found"));
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setPhone(phone);
+        user.setAddress(address);
+        ApplicationUser saved = applicationUserRepository.save(user);
+
+        ApplicationUserOutView view = new ApplicationUserOutView();
+        view.setUsername(saved.getUsername());
+        view.setRole(saved.getRole());
+        view.setFirstName(saved.getFirstName());
+        view.setLastName(saved.getLastName());
+        view.setPhone(saved.getPhone());
+        view.setAddress(saved.getAddress());
+        return view;
     }
 }

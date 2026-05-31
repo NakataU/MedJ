@@ -23,6 +23,7 @@ export interface DocumentOutView {
   checksum: string;
   size: string | number;
   uploadedByUserId: number;
+  content: string | null;
 }
 
 export interface SpecialtyOutView {
@@ -49,11 +50,13 @@ export interface AppointmentOutView {
 
 // Category types
 export type CategoryTarget = 'APPOINTMENT' | 'DOCUMENT';
+export type CategoryType = 'DOCUMENT_TYPE' | 'MEDICAL_SPECIALTY' | 'MEDICAL_CATEGORY';
 
 export interface CategoryOutView {
   id: number;
   label: string;
   target: CategoryTarget;
+  categoryType: CategoryType;
 }
 
 // Input types for creating/updating

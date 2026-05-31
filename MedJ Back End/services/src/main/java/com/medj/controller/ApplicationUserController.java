@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/user")
 public class ApplicationUserController {
@@ -25,7 +27,8 @@ public class ApplicationUserController {
 
     @PostMapping("/login")
     public ResponseEntity<JwtResponse> login(@RequestBody ApplicationUserLogInInView user,
-                                              HttpServletResponse response) {
+                                             HttpServletResponse response) {
+        System.out.println("Virtual: " + Thread.currentThread().isVirtual());
         return ResponseEntity.ok(applicationUserService.login(user, response));
     }
 
@@ -44,5 +47,21 @@ public class ApplicationUserController {
     public ResponseEntity<String> logout(HttpServletResponse response) {
         applicationUserService.logout(response);
         return ResponseEntity.ok("Logged out");
+    }
+
+    @GetMapping("/profile/{id}")
+    public ResponseEntity<ApplicationUserOutView> getProfile(@PathVariable("id") Long id) {
+        return applicationUserService.getById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/profile/{id}")
+    public ResponseEntity<ApplicationUserOutView> updateProfile(@PathVariable("id") Long id,
+                                                                 @RequestBody Map<String, String> body) {
+        ApplicationUserOutView updated = applicationUserService.updateProfile(id,
+                body.get("firstName"), body.get("lastName"),
+                body.get("phone"), body.get("address"));
+        return ResponseEntity.ok(updated);
     }
 }

@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { getAllAppointments, updateAppointment } from '../api/appointments';
 import { getAllPractitioners } from '../api/practitioners';
-import { getDocumentsByAppointmentId, deleteDocument, getPreviewUrl, getDownloadUrl, getAllUserDocuments } from '../api/documents';
+import { getDocumentsByAppointmentId, deleteDocument, fetchDocumentBlob, fetchDocumentDownloadBlob, getAllUserDocuments } from '../api/documents';
 import type { AppointmentOutView, PractitionerOutView, Page, AppointmentCreateInput, DocumentListOutView } from '../types';
 import { Pagination } from '../components/Pagination';
 
@@ -19,6 +19,28 @@ function AppointmentDocuments({ appointmentId }: { appointmentId: number }) {
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [previewDoc, setPreviewDoc] = useState<DocumentListOutView | null>(null);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+  const [downloadBlobUrl, setDownloadBlobUrl] = useState<string | null>(null);
+
+  const openPreview = async (doc: DocumentListOutView) => {
+    setPreviewDoc(doc);
+    setPreviewBlobUrl(null);
+    setDownloadBlobUrl(null);
+    const [preview, download] = await Promise.all([
+      fetchDocumentBlob(doc.id),
+      fetchDocumentDownloadBlob(doc.id),
+    ]);
+    setPreviewBlobUrl(preview);
+    setDownloadBlobUrl(download);
+  };
+
+  const closePreview = () => {
+    if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+    if (downloadBlobUrl) URL.revokeObjectURL(downloadBlobUrl);
+    setPreviewDoc(null);
+    setPreviewBlobUrl(null);
+    setDownloadBlobUrl(null);
+  };
 
   const fetchDocs = () => {
     setLoading(true);
@@ -64,7 +86,7 @@ function AppointmentDocuments({ appointmentId }: { appointmentId: number }) {
     <>
       {/* Preview Modal */}
       {previewDoc && (
-        <div className="modal-overlay apt-preview-overlay" onClick={() => setPreviewDoc(null)}>
+        <div className="modal-overlay apt-preview-overlay" onClick={closePreview}>
           <div className="modal apt-preview-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header apt-preview-header">
               <div className="apt-preview-title">
@@ -75,27 +97,31 @@ function AppointmentDocuments({ appointmentId }: { appointmentId: number }) {
                 <span>{previewDoc.fileName}</span>
               </div>
               <div className="apt-preview-actions">
-                <a
-                  href={getDownloadUrl(previewDoc.id)}
-                  className="button secondary apt-preview-download"
-                  download={previewDoc.fileName}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  ⬇ Download
-                </a>
-                <button className="modal-close" onClick={() => setPreviewDoc(null)}>&times;</button>
+                {downloadBlobUrl && (
+                  <a
+                    href={downloadBlobUrl}
+                    className="button secondary apt-preview-download"
+                    download={previewDoc.fileName}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    ⬇ Download
+                  </a>
+                )}
+                <button className="modal-close" onClick={closePreview}>&times;</button>
               </div>
             </div>
             <div className="apt-preview-body">
-              {isImage(previewDoc.fileName) ? (
+              {!previewBlobUrl ? (
+                <p style={{ padding: 20, textAlign: 'center' }}>Loading preview...</p>
+              ) : isImage(previewDoc.fileName) ? (
                 <img
-                  src={getPreviewUrl(previewDoc.id)}
+                  src={previewBlobUrl}
                   alt={previewDoc.fileName}
                   className="apt-preview-image"
                 />
               ) : (
                 <iframe
-                  src={getPreviewUrl(previewDoc.id)}
+                  src={previewBlobUrl}
                   title={previewDoc.fileName}
                   className="apt-preview-iframe"
                 />
@@ -111,7 +137,7 @@ function AppointmentDocuments({ appointmentId }: { appointmentId: number }) {
             <li
               key={doc.id}
               className="apt-docs-item apt-docs-item-clickable"
-              onClick={(e) => { e.stopPropagation(); setPreviewDoc(doc); }}
+              onClick={(e) => { e.stopPropagation(); openPreview(doc); }}
               title="Click to preview"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

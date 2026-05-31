@@ -12,8 +12,20 @@
     "appointments": "Appointments",
     "practitioners": "Practitioners",
     "summary": "Summary",
+    "profile": "Profile",
     "changePassword": "Change Password",
     "signOut": "Sign out"
+  },
+  "profile": {
+    "title": "My Profile",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "phone": "Phone",
+    "address": "Address",
+    "saving": "Saving...",
+    "success": "Profile updated successfully!",
+    "error": "Failed to load profile.",
+    "errorSave": "Failed to save profile. Please try again."
   },
   "auth": {
     "tagline": "Your personal medical record manager",
@@ -78,7 +90,8 @@
     "answerPlaceholder": "The response will appear here.",
     "generatingAnswer": "Generating summary...",
     "errorSummary": "Failed to generate summary. Please try again.",
-    "errorCard": "Failed to generate medical card. Please try again."
+    "errorCard": "Failed to generate medical card. Please try again.",
+    "usedDocuments": "Documents Used"
   },
   "documents": {
     "title": "My Documents",
@@ -96,7 +109,19 @@
     "uploading": "Uploading...",
     "uploadBtn": "Upload",
     "noCategoriesAvailable": "No document categories available.",
-    "categoryOptional": "Select one category per document (optional)."
+    "categoryOptional": "Select one category per document (optional).",
+    "categoriesRequired": "Select all three category types for each document.",
+    "catDocumentType": "Document Type",
+    "catMedicalSpecialty": "Medical Specialty",
+    "catMedicalCategory": "Medical Category",
+    "uploadAndScan": "Upload & Scan",
+    "invalidFileType": "Only PDF, JPG and PNG files are allowed.",
+    "reviewOcr": "Review Extracted Text",
+    "ocrDescription": "Review and correct the text extracted from your documents before saving.",
+    "ocrNoText": "No text was extracted from this document.",
+    "saveOcr": "Save",
+    "skipOcr": "Skip Review",
+    "ocrSaveError": "Failed to save changes. Please try again."
   },
   "appointments": {
     "title": "My Appointments",

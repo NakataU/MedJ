@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { getDocumentsByUserId, uploadDocuments, deleteDocument } from '../api/documents';
+import { getDocumentsByUserId, uploadDocuments, deleteDocument, updateDocumentContent, updateDocumentCategories } from '../api/documents';
 import { useAuth } from '../context/AuthContext';
-import { getAllCategories } from '../api/categories';
-import type { DocumentListOutView, Page, CategoryOutView } from '../types';
+import { getCategoriesByType } from '../api/categories';
+import type { DocumentListOutView, DocumentOutView, Page, CategoryOutView } from '../types';
 import { Pagination } from '../components/Pagination';
 
 const formatDate = (dateString: string): string => {
@@ -26,17 +26,38 @@ export function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+  const ACCEPT_STRING = '.pdf,.jpg,.jpeg,.png';
+
   // Upload modal state
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploadStep, setUploadStep] = useState<1 | 2>(1); // 1 = select files, 2 = assign categories
+  const [uploadStep, setUploadStep] = useState<1 | 2 | 3>(1);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [documentCategories, setDocumentCategories] = useState<CategoryOutView[]>([]);
+  const [docTypeCategories, setDocTypeCategories] = useState<CategoryOutView[]>([]);
+  const [medSpecCategories, setMedSpecCategories] = useState<CategoryOutView[]>([]);
+  const [medCatCategories, setMedCatCategories] = useState<CategoryOutView[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
-  // Map: fileIndex -> selected categoryId
-  const [selectedCategories, setSelectedCategories] = useState<Record<number, number>>({});
+  // Per-document selections: key = `${docIndex}-${categoryType}`
+  const [selectedDocTypes, setSelectedDocTypes] = useState<Record<number, number>>({});
+  const [selectedMedSpecs, setSelectedMedSpecs] = useState<Record<number, number>>({});
+  const [selectedMedCats, setSelectedMedCats] = useState<Record<number, number>>({});
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  // OCR review state (step 2)
+  const [uploadedDocs, setUploadedDocs] = useState<DocumentOutView[]>([]);
+  const [ocrTexts, setOcrTexts] = useState<Record<number, string>>({});
+  const [savingOcr, setSavingOcr] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
+
+  // Filter state
+  const [filterDocType, setFilterDocType] = useState<number | undefined>();
+  const [filterMedSpec, setFilterMedSpec] = useState<number | undefined>();
+  const [filterMedCat, setFilterMedCat] = useState<number | undefined>();
+  const [filterDocTypeOptions, setFilterDocTypeOptions] = useState<CategoryOutView[]>([]);
+  const [filterMedSpecOptions, setFilterMedSpecOptions] = useState<CategoryOutView[]>([]);
+  const [filterMedCatOptions, setFilterMedCatOptions] = useState<CategoryOutView[]>([]);
 
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -45,7 +66,12 @@ export function DocumentsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getDocumentsByUserId(user!.id, page, 10);
+      const filters = {
+        documentTypeId: filterDocType,
+        medicalSpecialtyId: filterMedSpec,
+        medicalCategoryId: filterMedCat,
+      };
+      const data = await getDocumentsByUserId(user!.id, page, 10, filters);
       setDocuments(data.content);
       setPageData(data);
     } catch (err) {
@@ -58,7 +84,19 @@ export function DocumentsPage() {
 
   useEffect(() => {
     fetchDocuments();
-  }, [page]);
+  }, [page, filterDocType, filterMedSpec, filterMedCat]);
+
+  useEffect(() => {
+    Promise.all([
+      getCategoriesByType('DOCUMENT', 'DOCUMENT_TYPE'),
+      getCategoriesByType('DOCUMENT', 'MEDICAL_SPECIALTY'),
+      getCategoriesByType('DOCUMENT', 'MEDICAL_CATEGORY'),
+    ]).then(([dt, ms, mc]) => {
+      setFilterDocTypeOptions(dt);
+      setFilterMedSpecOptions(ms);
+      setFilterMedCatOptions(mc);
+    }).catch(() => {});
+  }, []);
 
   const handleDocumentClick = (id: number) => {
     navigate(`/documents/${id}`);
@@ -83,66 +121,73 @@ export function DocumentsPage() {
 
   const openUploadModal = () => {
     setSelectedFiles([]);
-    setSelectedCategories({});
+    setSelectedDocTypes({});
+    setSelectedMedSpecs({});
+    setSelectedMedCats({});
     setUploadError(null);
     setUploadStep(1);
+    setUploadedDocs([]);
+    setOcrTexts({});
+    setShowValidation(false);
     setShowUploadModal(true);
   };
 
   const closeUploadModal = () => {
     setShowUploadModal(false);
     setSelectedFiles([]);
-    setSelectedCategories({});
+    setSelectedDocTypes({});
+    setSelectedMedSpecs({});
+    setSelectedMedCats({});
     setUploadError(null);
     setUploadStep(1);
+    setUploadedDocs([]);
+    setOcrTexts({});
+    setShowValidation(false);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files);
+      const invalid = newFiles.filter((f) => !ALLOWED_TYPES.includes(f.type));
+      if (invalid.length > 0) {
+        setUploadError(t('documents.invalidFileType'));
+        return;
+      }
+      setUploadError(null);
       setSelectedFiles((prev) => [...prev, ...newFiles]);
     }
   };
 
+  const shiftIndexMap = (prev: Record<number, number>, index: number) => {
+    const rebuilt: Record<number, number> = {};
+    Object.entries(prev).forEach(([key, val]) => {
+      const i = Number(key);
+      if (i < index) rebuilt[i] = val;
+      else if (i > index) rebuilt[i - 1] = val;
+    });
+    return rebuilt;
+  };
+
   const removeFile = (index: number) => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-    // Rebuild selectedCategories with shifted indexes
-    setSelectedCategories((prev) => {
-      const rebuilt: Record<number, number> = {};
-      Object.entries(prev).forEach(([key, val]) => {
-        const i = Number(key);
-        if (i < index) rebuilt[i] = val;
-        else if (i > index) rebuilt[i - 1] = val;
-      });
-      return rebuilt;
-    });
+    setSelectedDocTypes((prev) => shiftIndexMap(prev, index));
+    setSelectedMedSpecs((prev) => shiftIndexMap(prev, index));
+    setSelectedMedCats((prev) => shiftIndexMap(prev, index));
   };
 
-  const goToCategories = async () => {
-    setUploadError(null);
-    setCategoriesLoading(true);
-    try {
-      const data = await getAllCategories('DOCUMENT', 0, 100);
-      setDocumentCategories(data.content);
-      setUploadStep(2);
-    } catch {
-      setUploadError(t('documents.error'));
-    } finally {
-      setCategoriesLoading(false);
-    }
-  };
-
-  const handleUpload = async () => {
+  const handleUploadAndOcr = async () => {
     if (selectedFiles.length === 0) return;
     setUploadLoading(true);
     setUploadError(null);
     try {
-      const documentCategoryIds: (number | null)[] = selectedFiles.map((_, i) =>
-        selectedCategories[i] !== undefined ? selectedCategories[i] : null
-      );
-      await uploadDocuments(selectedFiles, documentCategoryIds);
-      closeUploadModal();
-      fetchDocuments();
+      const docs = await uploadDocuments(selectedFiles, []);
+      setUploadedDocs(docs);
+      const texts: Record<number, string> = {};
+      docs.forEach((doc) => {
+        texts[doc.id] = doc.content ?? '';
+      });
+      setOcrTexts(texts);
+      setUploadStep(2);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.data) {
         const data = err.response.data;
@@ -152,6 +197,59 @@ export function DocumentsPage() {
       }
     } finally {
       setUploadLoading(false);
+    }
+  };
+
+  const goToCategories = async () => {
+    setUploadError(null);
+    setCategoriesLoading(true);
+    try {
+      const [docTypes, medSpecs, medCats] = await Promise.all([
+        getCategoriesByType('DOCUMENT', 'DOCUMENT_TYPE'),
+        getCategoriesByType('DOCUMENT', 'MEDICAL_SPECIALTY'),
+        getCategoriesByType('DOCUMENT', 'MEDICAL_CATEGORY'),
+      ]);
+      setDocTypeCategories(docTypes);
+      setMedSpecCategories(medSpecs);
+      setMedCatCategories(medCats);
+      setUploadStep(3);
+    } catch {
+      setUploadError(t('documents.error'));
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  const allCategoriesSelected = uploadedDocs.every((_, i) =>
+    selectedDocTypes[i] && selectedMedSpecs[i] && selectedMedCats[i]
+  );
+
+  const handleSaveAll = async () => {
+    if (!allCategoriesSelected) {
+      setShowValidation(true);
+      return;
+    }
+    setSavingOcr(true);
+    setUploadError(null);
+    try {
+      for (let i = 0; i < uploadedDocs.length; i++) {
+        const doc = uploadedDocs[i];
+        const editedText = ocrTexts[doc.id] ?? '';
+        if (editedText !== (doc.content ?? '')) {
+          await updateDocumentContent(doc.id, editedText);
+        }
+        await updateDocumentCategories(doc.id, {
+          documentTypeId: selectedDocTypes[i],
+          medicalSpecialtyId: selectedMedSpecs[i],
+          medicalCategoryId: selectedMedCats[i],
+        });
+      }
+      closeUploadModal();
+      fetchDocuments();
+    } catch {
+      setUploadError(t('documents.ocrSaveError'));
+    } finally {
+      setSavingOcr(false);
     }
   };
 
@@ -167,12 +265,45 @@ export function DocumentsPage() {
         </button>
       </div>
 
+      <div className="document-filters">
+        <select
+          className="form-select"
+          value={filterDocType ?? ''}
+          onChange={(e) => { setFilterDocType(e.target.value ? Number(e.target.value) : undefined); setPage(0); }}
+        >
+          <option value="">{t('documents.catDocumentType')}</option>
+          {filterDocTypeOptions.map((cat) => (
+            <option key={cat.id} value={cat.id}>{cat.label}</option>
+          ))}
+        </select>
+        <select
+          className="form-select"
+          value={filterMedSpec ?? ''}
+          onChange={(e) => { setFilterMedSpec(e.target.value ? Number(e.target.value) : undefined); setPage(0); }}
+        >
+          <option value="">{t('documents.catMedicalSpecialty')}</option>
+          {filterMedSpecOptions.map((cat) => (
+            <option key={cat.id} value={cat.id}>{cat.label}</option>
+          ))}
+        </select>
+        <select
+          className="form-select"
+          value={filterMedCat ?? ''}
+          onChange={(e) => { setFilterMedCat(e.target.value ? Number(e.target.value) : undefined); setPage(0); }}
+        >
+          <option value="">{t('documents.catMedicalCategory')}</option>
+          {filterMedCatOptions.map((cat) => (
+            <option key={cat.id} value={cat.id}>{cat.label}</option>
+          ))}
+        </select>
+      </div>
+
       {/* Upload Modal */}
       {showUploadModal && (
         <div className="modal-overlay" onClick={closeUploadModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{uploadStep === 1 ? t('documents.upload') : t('documents.assignCategories')}</h2>
+              <h2>{uploadStep === 1 ? t('documents.upload') : uploadStep === 2 ? t('documents.reviewOcr') : t('documents.assignCategories')}</h2>
               <button className="modal-close" onClick={closeUploadModal}>&times;</button>
             </div>
             <div className="modal-body">
@@ -186,6 +317,7 @@ export function DocumentsPage() {
                     <input
                       type="file"
                       multiple
+                      accept={ACCEPT_STRING}
                       className="file-input"
                       onChange={handleFileChange}
                     />
@@ -217,8 +349,81 @@ export function DocumentsPage() {
                     <button
                       type="button"
                       className="button"
+                      onClick={handleUploadAndOcr}
+                      disabled={uploadLoading || selectedFiles.length === 0}
+                    >
+                      {uploadLoading ? t('documents.uploading') : t('documents.uploadAndScan')}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Step 2: Review OCR results */}
+              {uploadStep === 2 && (
+                <>
+                  <p className="doc-category-subtitle" style={{ marginBottom: 16 }}>
+                    {t('documents.ocrDescription')}
+                  </p>
+
+                  <div className="ocr-review-list">
+                    {uploadedDocs.map((doc, index) => {
+                      const file = selectedFiles[index];
+                      const previewUrl = file ? URL.createObjectURL(file) : null;
+                      const isImage = file?.type.startsWith('image/');
+                      const isPdf = file?.type === 'application/pdf';
+
+                      return (
+                        <div key={doc.id} className="ocr-review-card">
+                          <div className="ocr-review-header">
+                            <span className="doc-category-file-icon">&#128196;</span>
+                            <span className="doc-category-file-name">{doc.fileName}</span>
+                          </div>
+                          <div className="ocr-review-body">
+                            {previewUrl && (
+                              <div className="ocr-preview-pane">
+                                {isImage && (
+                                  <img
+                                    src={previewUrl}
+                                    alt={doc.fileName}
+                                    className="ocr-preview-image"
+                                  />
+                                )}
+                                {isPdf && (
+                                  <iframe
+                                    src={previewUrl}
+                                    title={doc.fileName}
+                                    className="ocr-preview-pdf"
+                                  />
+                                )}
+                              </div>
+                            )}
+                            <textarea
+                              className="ocr-review-textarea"
+                              value={ocrTexts[doc.id] ?? ''}
+                              onChange={(e) =>
+                                setOcrTexts((prev) => ({ ...prev, [doc.id]: e.target.value }))
+                              }
+                              placeholder={t('documents.ocrNoText')}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      className="button secondary"
+                      onClick={() => { setUploadStep(1); setUploadError(null); }}
+                    >
+                      {t('common.back')}
+                    </button>
+                    <button
+                      type="button"
+                      className="button"
                       onClick={goToCategories}
-                      disabled={categoriesLoading || selectedFiles.length === 0}
+                      disabled={categoriesLoading}
                     >
                       {categoriesLoading ? t('common.loading') : t('documents.nextStep')}
                     </button>
@@ -226,62 +431,65 @@ export function DocumentsPage() {
                 </>
               )}
 
-              {/* Step 2: Assign categories */}
-              {uploadStep === 2 && (
+              {/* Step 3: Assign categories & save */}
+              {uploadStep === 3 && (
                 <>
                   <p className="doc-category-subtitle" style={{ marginBottom: 16 }}>
-                    {t('documents.categoryOptional')}
+                    {t('documents.categoriesRequired')}
                   </p>
 
                   <div className="doc-category-list" style={{ marginBottom: 20 }}>
-                    {selectedFiles.map((file, fileIndex) => (
-                      <div key={fileIndex} className="doc-category-card">
+                    {uploadedDocs.map((doc, fileIndex) => (
+                      <div key={doc.id} className="doc-category-card">
                         <div className="doc-category-card-header">
                           <span className="doc-category-file-icon">&#128196;</span>
                           <div className="doc-category-file-info">
-                            <span className="doc-category-file-name">{file.name}</span>
-                            <span className="doc-category-file-size">
-                              {(file.size / 1024).toFixed(1)} KB
-                            </span>
+                            <span className="doc-category-file-name">{doc.fileName}</span>
                           </div>
-                          <button
-                            type="button"
-                            className="doc-remove-btn"
-                            onClick={() => removeFile(fileIndex)}
-                            disabled={uploadLoading}
-                            title="Remove document"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                              <path d="M10 11v6" />
-                              <path d="M14 11v6" />
-                              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                            </svg>
-                          </button>
                         </div>
 
                         <div className="doc-category-body">
-                          {documentCategories.length === 0 ? (
-                            <p className="empty-hint">{t('documents.noCategoriesAvailable')}</p>
-                          ) : (
-                            <div className="doc-radio-group">
-                              {documentCategories.map((category) => (
-                                <label key={category.id} className="doc-radio-label">
-                                  <input
-                                    type="radio"
-                                    name={`upload-doc-cat-${fileIndex}`}
-                                    value={category.id}
-                                    checked={selectedCategories[fileIndex] === category.id}
-                                    onChange={() =>
-                                      setSelectedCategories((prev) => ({ ...prev, [fileIndex]: category.id }))
-                                    }
-                                  />
-                                  {category.label}
-                                </label>
+                          <div className="doc-category-group">
+                            <label className="doc-category-group-label">{t('documents.catDocumentType')}</label>
+                            <select
+                              className={`form-select${showValidation && !selectedDocTypes[fileIndex] ? ' form-select-error' : ''}`}
+                              value={selectedDocTypes[fileIndex] ?? ''}
+                              onChange={(e) => setSelectedDocTypes((prev) => ({ ...prev, [fileIndex]: Number(e.target.value) }))}
+                            >
+                              <option value="">{t('documents.catDocumentType')}...</option>
+                              {docTypeCategories.map((cat) => (
+                                <option key={cat.id} value={cat.id}>{cat.label}</option>
                               ))}
-                            </div>
-                          )}
+                            </select>
+                          </div>
+
+                          <div className="doc-category-group">
+                            <label className="doc-category-group-label">{t('documents.catMedicalSpecialty')}</label>
+                            <select
+                              className={`form-select${showValidation && !selectedMedSpecs[fileIndex] ? ' form-select-error' : ''}`}
+                              value={selectedMedSpecs[fileIndex] ?? ''}
+                              onChange={(e) => setSelectedMedSpecs((prev) => ({ ...prev, [fileIndex]: Number(e.target.value) }))}
+                            >
+                              <option value="">{t('documents.catMedicalSpecialty')}...</option>
+                              {medSpecCategories.map((cat) => (
+                                <option key={cat.id} value={cat.id}>{cat.label}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="doc-category-group">
+                            <label className="doc-category-group-label">{t('documents.catMedicalCategory')}</label>
+                            <select
+                              className={`form-select${showValidation && !selectedMedCats[fileIndex] ? ' form-select-error' : ''}`}
+                              value={selectedMedCats[fileIndex] ?? ''}
+                              onChange={(e) => setSelectedMedCats((prev) => ({ ...prev, [fileIndex]: Number(e.target.value) }))}
+                            >
+                              <option value="">{t('documents.catMedicalCategory')}...</option>
+                              {medCatCategories.map((cat) => (
+                                <option key={cat.id} value={cat.id}>{cat.label}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -291,18 +499,18 @@ export function DocumentsPage() {
                     <button
                       type="button"
                       className="button secondary"
-                      onClick={() => { setUploadStep(1); setUploadError(null); }}
-                      disabled={uploadLoading}
+                      onClick={() => { setUploadStep(2); setUploadError(null); }}
+                      disabled={savingOcr}
                     >
                       {t('common.back')}
                     </button>
                     <button
                       type="button"
                       className="button"
-                      onClick={handleUpload}
-                      disabled={uploadLoading || selectedFiles.length === 0}
+                      onClick={handleSaveAll}
+                      disabled={savingOcr || !allCategoriesSelected}
                     >
-                      {uploadLoading ? t('documents.uploading') : t('documents.uploadBtn')}
+                      {savingOcr ? t('common.loading') : t('common.save')}
                     </button>
                   </div>
                 </>

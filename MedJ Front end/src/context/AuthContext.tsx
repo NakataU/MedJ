@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Attach the token to every outgoing request
   useEffect(() => {
-    const interceptor = apiClient.interceptors.request.use((config) => {
+    const reqInterceptor = apiClient.interceptors.request.use((config) => {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed: AuthUser = JSON.parse(stored);
@@ -36,7 +36,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return config;
     });
-    return () => apiClient.interceptors.request.eject(interceptor);
+
+    const resInterceptor = apiClient.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401 && localStorage.getItem(STORAGE_KEY)) {
+          localStorage.removeItem(STORAGE_KEY);
+          setUser(null);
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      apiClient.interceptors.request.eject(reqInterceptor);
+      apiClient.interceptors.response.eject(resInterceptor);
+    };
   }, []);
 
   const loginUser = (response: AuthResponse) => {

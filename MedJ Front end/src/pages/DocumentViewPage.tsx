@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDocumentById, getPreviewUrl, getDownloadUrl } from '../api/documents';
+import { getDocumentById, fetchDocumentBlob, fetchDocumentDownloadBlob } from '../api/documents';
 import type { DocumentOutView } from '../types';
 
 
@@ -41,6 +41,8 @@ const isImage = (contentType: string): boolean => {
 export function DocumentViewPage() {
   const { id } = useParams<{ id: string }>();
   const [document, setDocument] = useState<DocumentOutView | null>(null);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [downloadBlobUrl, setDownloadBlobUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(false);
@@ -68,6 +70,12 @@ export function DocumentViewPage() {
       try {
         const data = await getDocumentById(documentId);
         setDocument(data);
+        const [preview, download] = await Promise.all([
+          fetchDocumentBlob(documentId),
+          fetchDocumentDownloadBlob(documentId),
+        ]);
+        setBlobUrl(preview);
+        setDownloadBlobUrl(download);
       } catch (err) {
         console.error(err);
         setError('Failed to load document');
@@ -77,6 +85,11 @@ export function DocumentViewPage() {
     };
 
     fetchDocument();
+
+    return () => {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      if (downloadBlobUrl) URL.revokeObjectURL(downloadBlobUrl);
+    };
   }, [id]);
 
   const handlePreviewError = () => {
@@ -84,9 +97,8 @@ export function DocumentViewPage() {
   };
 
   const renderPreview = () => {
-    if (!document) return null;
+    if (!document || !blobUrl) return null;
 
-    const previewUrl = getPreviewUrl(document.id);
     const canPreview = isPreviewable(document.contentType);
 
     if (previewError || !canPreview) {
@@ -102,7 +114,7 @@ export function DocumentViewPage() {
     if (isImage(document.contentType)) {
       return (
         <img
-          src={previewUrl}
+          src={blobUrl}
           alt={document.fileName}
           className="preview-image"
           onError={handlePreviewError}
@@ -110,10 +122,9 @@ export function DocumentViewPage() {
       );
     }
 
-    // PDF and other documents use iframe
     return (
       <iframe
-        src={previewUrl}
+        src={blobUrl}
         title={document.fileName}
         className="preview-pdf"
         onError={handlePreviewError}
@@ -140,21 +151,25 @@ export function DocumentViewPage() {
         </div>
 
         <div className="document-actions">
-          <a
-            href={getDownloadUrl(document.id)}
-            className="button"
-            download={document.fileName}
-          >
-            Download
-          </a>
-          <a
-            href={getPreviewUrl(document.id)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="button secondary"
-          >
-            Open in New Tab
-          </a>
+          {downloadBlobUrl && (
+            <a
+              href={downloadBlobUrl}
+              className="button"
+              download={document.fileName}
+            >
+              Download
+            </a>
+          )}
+          {blobUrl && (
+            <a
+              href={blobUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="button secondary"
+            >
+              Open in New Tab
+            </a>
+          )}
         </div>
 
         <div className="document-preview">

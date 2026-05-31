@@ -1,6 +1,7 @@
 package com.medj.view.outView;
 
 import com.medj.entities.CategoryTarget;
+import com.medj.entities.CategoryType;
 import lombok.Data;
 
 @Data
@@ -8,4 +9,5 @@ public class CategoryOutView {
     private Long id;
     private String label;
     private CategoryTarget target;
+    private CategoryType categoryType;
 }
